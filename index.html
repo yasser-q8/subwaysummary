@@ -29,6 +29,29 @@
             margin: 0;
             padding: 0;
             direction: rtl;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* ====== العلامة المائية ====== */
+        #watermark-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+        .watermark-item {
+            position: absolute;
+            opacity: 0.08;
+            width: 100px;
+            height: auto;
+            object-fit: contain;
+            user-select: none;
+            -webkit-user-drag: none;
         }
 
         /* شاشة تسجيل الدخول الحماية */
@@ -149,6 +172,9 @@
     </style>
 </head>
 <body>
+
+    <!-- العلامة المائية (سيتم ملؤها بواسطة JavaScript) -->
+    <div id="watermark-container"></div>
 
     <div id="loginScreen">
         <div class="login-box">
@@ -340,8 +366,12 @@
                 
                 <div class="settings-panel">
                     <div class="form-group">
-                        <label>قيمة بضاعة أول المدة (للبرنامج ككل)</label>
-                        <input type="number" id="set_inv" placeholder="0.00">
+                        <label>قيمة بضاعة أول المدة</label>
+                        <input type="number" id="set_inv" placeholder="0.00" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>تاريخ بداية المخزون</label>
+                        <input type="date" id="set_inv_date">
                     </div>
                     <div class="form-group">
                         <label>نسبة تكلفة المبيعات (%) الافتراضي 90%</label>
@@ -410,19 +440,113 @@
     <div id="loadingSpinner">جاري المعالجة والتصدير...</div>
 
     <script>
+        // ============================================================
+        // 1. إنشاء العلامة المائية (50 شعارًا عشوائيًا بمسافة >= 3 سم)
+        // ============================================================
+        function createWatermarks() {
+            const container = document.getElementById('watermark-container');
+            const logoUrl = 'https://i.postimg.cc/3wX7WF0f/Subway-Logo.png';
+            const count = 50;
+            const minDistPx = 100; // 3 سم ≈ 100 بكسل (تقريباً)
+            const positions = [];
+
+            function distance(p1, p2) {
+                return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+            }
+
+            let attempts = 0;
+            const maxAttempts = 10000;
+            for (let i = 0; i < count; i++) {
+                let placed = false;
+                while (!placed && attempts < maxAttempts) {
+                    attempts++;
+                    const x = Math.random() * 100;
+                    const y = Math.random() * 100;
+                    const newPos = { x, y };
+                    let ok = true;
+                    for (const p of positions) {
+                        const dx = (newPos.x - p.x) * window.innerWidth / 100;
+                        const dy = (newPos.y - p.y) * window.innerHeight / 100;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < minDistPx) {
+                            ok = false;
+                            break;
+                        }
+                    }
+                    if (ok) {
+                        positions.push(newPos);
+                        placed = true;
+                    }
+                }
+                if (!placed) {
+                    positions.push({ x: Math.random() * 100, y: Math.random() * 100 });
+                }
+            }
+
+            positions.forEach(pos => {
+                const img = document.createElement('img');
+                img.src = logoUrl;
+                img.className = 'watermark-item';
+                img.style.left = pos.x + '%';
+                img.style.top = pos.y + '%';
+                img.style.transform = `translate(-50%, -50%) rotate(${Math.random() * 20 - 10}deg)`;
+                img.style.width = (80 + Math.random() * 60) + 'px';
+                container.appendChild(img);
+            });
+        }
+
+        window.addEventListener('load', function() {
+            createWatermarks();
+        });
+
+        // ============================================================
         // نظام تسجيل الدخول
+        // ============================================================
         function checkPassword() {
             const pwd = document.getElementById('appPassword').value;
             if(pwd === '55555') {
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('appContainer').style.display = 'block';
-                checkBackupReminder(); // التأكد من عمل نسخة احتياطية فور الدخول
+                checkBackupReminder();
+                setDefaultDateFilters();
+                // تحميل الإعدادات
+                document.getElementById('set_inv').value = db.settings.initialInv || 0;
+                document.getElementById('set_inv_date').value = db.settings.initialInvDate || '';
+                document.getElementById('set_cogs').value = db.settings.cogsRate || 90;
             } else {
                 alert('كلمة المرور غير صحيحة، لا يمكن فتح البرنامج.');
             }
         }
 
-        // تنسيق الأرقام بدون كتابة العملة بجوارها
+        // ============================================================
+        // 2. ضبط التواريخ الافتراضية للفلاتر: بداية الشهر الحالي → اليوم
+        // ============================================================
+        function setDefaultDateFilters() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
+            const firstDayStr = `${year}-${month}-01`;
+
+            const fromIds = ['f_s_from', 'f_p_from', 'f_e_from', 'f_pl_from'];
+            const toIds = ['f_s_to', 'f_p_to', 'f_e_to', 'f_pl_to'];
+
+            fromIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = firstDayStr;
+            });
+            toIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = todayStr;
+            });
+
+            renderAllTables();
+        }
+
+        // ============================================================
+        // دوال مساعدة
+        // ============================================================
         function fmt(num, decimals = 2) {
             let n = Number(num) || 0;
             if(decimals === 0) n = Math.round(n);
@@ -442,46 +566,43 @@
             return true;
         }
 
-        // قاعدة البيانات ومتابعة التعديلات
+        // ============================================================
+        // قاعدة البيانات
+        // ============================================================
         let db = JSON.parse(localStorage.getItem('subway_db_v3')) || {
             sales: [], purchases: [], expenses: [],
-            settings: { initialInv: 0, cogsRate: 90, lastBackup: 0 }
+            settings: { initialInv: 0, initialInvDate: '', cogsRate: 90, lastBackup: 0 }
         };
         let editMode = { sales: -1, purchases: -1, expenses: -1 };
-        let dataModifiedSinceBackup = false; // لمراقبة الإغلاق بدون حفظ احتياطي
+        let dataModifiedSinceBackup = false;
 
-        window.onload = function() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('s_date').value = today;
-            document.getElementById('p_date').value = today;
-            document.getElementById('e_date').value = today;
-            
-            document.getElementById('set_inv').value = db.settings.initialInv;
-            document.getElementById('set_cogs').value = db.settings.cogsRate || 90;
-
-            renderAllTables();
-        };
-
-        // التحقق من النسخ الاحتياطي (مرور 24 ساعة)
+        // ============================================================
+        // تنبيه النسخ الاحتياطي (12 ساعة)
+        // ============================================================
         function checkBackupReminder() {
             const now = Date.now();
             const lastBackup = db.settings.lastBackup || 0;
             const hoursPassed = (now - lastBackup) / (1000 * 60 * 60);
             
-            if (hoursPassed >= 24) {
-                alert('تنبيه هام جداً: لقد مر أكثر من 24 ساعة ولم تقم بعمل نسخة احتياطية للبيانات. يرجى أخذ نسخة احتياطية الآن من الزر المخصص بأعلى الشاشة لضمان عدم ضياع بياناتك.');
+            if (hoursPassed >= 12) {
+                alert('⚠️ تنبيه هام: لقد مر أكثر من 12 ساعة ولم تقم بعمل نسخة احتياطية للبيانات. يرجى أخذ نسخة احتياطية الآن من الزر المخصص بأعلى الشاشة لضمان عدم ضياع بياناتك.');
             }
         }
 
-        // تحذير المتصفح عند محاولة الإغلاق والتعديل غير محفوظ
+        // ============================================================
+        // رسالة إغلاق المتصفح (أكثر وضوحاً)
+        // ============================================================
         window.addEventListener('beforeunload', function (e) {
             if (dataModifiedSinceBackup) {
-                var confirmationMessage = 'لقد قمت بتعديل البيانات ولم تقم بأخذ نسخة احتياطية. هل أنت متأكد من رغبتك في إغلاق البرنامج؟ يُنصح بأخذ نسخة احتياطية قبل الغلق.';
-                e.returnValue = confirmationMessage;
-                return confirmationMessage;
+                var message = '⚠️ تنبيه هام: لقد قمت بتعديل أو إضافة بيانات ولم تقم بعمل نسخة احتياطية. سيتم فقدان البيانات إذا أغلقت البرنامج الآن. ننصح بشدة بأخذ نسخة احتياطية قبل الخروج. هل أنت متأكد من إغلاق البرنامج؟';
+                e.returnValue = message;
+                return message;
             }
         });
 
+        // ============================================================
+        // دوال إدارة البيانات
+        // ============================================================
         function switchTab(tabId, btnElement) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -574,20 +695,27 @@
             }
         }
 
+        // ============================================================
+        // حفظ الإعدادات (مع التاريخ)
+        // ============================================================
         function saveSettings() {
             db.settings.initialInv = parseFloat(document.getElementById('set_inv').value) || 0;
+            db.settings.initialInvDate = document.getElementById('set_inv_date').value || '';
             db.settings.cogsRate = parseFloat(document.getElementById('set_cogs').value) || 90;
             saveData(); alert('تم حفظ الإعدادات بنجاح');
         }
 
         function saveData() {
             localStorage.setItem('subway_db_v3', JSON.stringify(db));
-            dataModifiedSinceBackup = true; // تم إضافة بيانات جديدة تحتاج نسخ احتياطي
+            dataModifiedSinceBackup = true;
             renderAllTables();
         }
 
         let periodTotals = {};
 
+        // ============================================================
+        // عرض الجداول وحساب المؤشرات (مع مراعاة تاريخ بداية المخزون)
+        // ============================================================
         function renderAllTables() {
             // المبيعات
             const f_s_from = document.getElementById('f_s_from').value; const f_s_to = document.getElementById('f_s_to').value;
@@ -620,36 +748,72 @@
             const f_pl_from = document.getElementById('f_pl_from').value; 
             const f_pl_to = document.getElementById('f_pl_to').value;
 
-            let pSales = 0, pPurchases = 0, pExpenses = 0;
-            let histSales = 0, histPurchases = 0; 
+            // قراءة إعدادات المخزون
+            const initialInv = db.settings.initialInv || 0;
+            const invDate = db.settings.initialInvDate || ''; // تاريخ بداية المخزون
+            const cogsRate = (db.settings.cogsRate || 90) / 100;
 
+            let pSales = 0, pPurchases = 0, pExpenses = 0;
+            let histSales = 0, histPurchases = 0; // للفترة السابقة (من invDate إلى f_pl_from)
+
+            // حساب مبيعات الفترة الحالية
             db.sales.forEach(r => {
                 if(inRange(r.date, f_pl_from, f_pl_to)) pSales += r.total;
-                if(f_pl_from && r.date < f_pl_from) histSales += r.total;
+                // حساب المبيعات السابقة (من تاريخ بداية المخزون إلى بداية الفترة)
+                if(invDate && f_pl_from && r.date >= invDate && r.date < f_pl_from) {
+                    histSales += r.total;
+                }
+                // إذا لم يوجد تاريخ بداية، نأخذ جميع المبيعات قبل بداية الفترة
+                if(!invDate && f_pl_from && r.date < f_pl_from) {
+                    histSales += r.total;
+                }
             });
+
+            // حساب مشتريات الفترة الحالية
             db.purchases.forEach(r => {
                 if(inRange(r.date, f_pl_from, f_pl_to)) pPurchases += r.amount;
-                if(f_pl_from && r.date < f_pl_from) histPurchases += r.amount;
+                if(invDate && f_pl_from && r.date >= invDate && r.date < f_pl_from) {
+                    histPurchases += r.amount;
+                }
+                if(!invDate && f_pl_from && r.date < f_pl_from) {
+                    histPurchases += r.amount;
+                }
             });
+
+            // مصروفات الفترة
             db.expenses.forEach(r => {
                 if(inRange(r.date, f_pl_from, f_pl_to)) pExpenses += r.amount;
             });
 
-            let rate = (db.settings.cogsRate || 90) / 100;
-            let pCogs = pSales * rate;
-            let histCogs = histSales * rate;
+            // تكلفة البضاعة المباعة للفترة الحالية والسابقة
+            let pCogs = pSales * cogsRate;
+            let histCogs = histSales * cogsRate;
 
-            let periodOpeningInventory = db.settings.initialInv + histPurchases - histCogs;
+            // حساب المخزون الافتتاحي للفترة:
+            // إذا كانت بداية الفترة قبل أو تساوي تاريخ بداية المخزون، نأخذ initialInv مباشرة
+            let periodOpeningInventory = initialInv;
+            if (invDate && f_pl_from && f_pl_from > invDate) {
+                // بداية الفترة بعد تاريخ بداية المخزون: نحتاج إلى إضافة المشتريات وخصم تكلفة المبيعات منذ تاريخ البداية
+                periodOpeningInventory = initialInv + histPurchases - histCogs;
+            } else if (!invDate) {
+                // إذا لم يتم تحديد تاريخ بداية، نعتبر أن initialInv هو الرصيد قبل أي عمليات (استخدام الطريقة القديمة)
+                periodOpeningInventory = initialInv + histPurchases - histCogs;
+            }
+
+            // المخزون الختامي
             let periodClosingInventory = periodOpeningInventory + pPurchases - pCogs;
 
             let pGross = pSales - pCogs;
             let pNet = pGross - pExpenses;
             
-            periodTotals = { pSales, pCogs, pGross, pExpenses, pNet, periodOpeningInventory, pPurchases, periodClosingInventory };
+            periodTotals = { 
+                pSales, pCogs, pGross, pExpenses, pNet, 
+                periodOpeningInventory, pPurchases, periodClosingInventory,
+                histSales, histPurchases, histCogs
+            };
 
             let netColor = pNet < 0 ? 'var(--danger-color)' : 'var(--subway-green)';
             
-            // تحديث عناوين وكروت الداشبورد
             document.getElementById('cogs_title').innerText = `تكلفة البضاعة المباعة (${db.settings.cogsRate || 90}%)`;
             document.getElementById('dash_sales').innerText = fmt(pSales, 0);
             document.getElementById('dash_cogs').innerText = fmt(pCogs, 0);
@@ -660,7 +824,6 @@
             document.getElementById('card_net').style.borderRightColor = netColor;
             document.getElementById('dash_inventory').innerText = fmt(periodClosingInventory, 0);
 
-            // بناء الجدول بالقيم المقربة للصفر بخط عامود المعادلات أكبر وتكبير رقم الربح
             const plBody = document.getElementById('pl_tbody');
             plBody.innerHTML = `
                 <tr><td>إجمالي المبيعات المحققة</td><td style="color:#444; font-size:16px;">مجموع المبيعات للفترة المحددة</td><td style="text-align:center; font-weight:bold; color:var(--subway-green);">${fmt(pSales, 0)}</td></tr>
@@ -677,7 +840,7 @@
                 <tr style="border:none;"><td colspan="3" style="height:25px; border-bottom: 3px dashed #888;"></td></tr>
                 <tr style="border:none;"><td colspan="3" style="height:15px;"></td></tr>
 
-                <tr><td>رصيد المخزون الافتتاحي للفترة</td><td style="color:#444; font-size:16px;">الرصيد المحول من الفترات السابقة</td><td style="text-align:center; font-weight:bold;">${fmt(periodOpeningInventory, 0)}</td></tr>
+                <tr><td>رصيد المخزون الافتتاحي للفترة</td><td style="color:#444; font-size:16px;">الرصيد المحول من الفترات السابقة (حسب تاريخ البداية)</td><td style="text-align:center; font-weight:bold;">${fmt(periodOpeningInventory, 0)}</td></tr>
                 <tr><td>إجمالي المشتريات خلال الفترة (+)</td><td style="color:#444; font-size:16px;">مجموع المشتريات المضافة للفترة المحددة</td><td style="text-align:center; font-weight:bold;">${fmt(pPurchases, 0)}</td></tr>
                 <tr><td>تكلفة البضاعة المباعة للفترة (-)</td><td style="color:#444; font-size:16px;">يتم خصم البضاعة التي تم بيعها</td><td style="text-align:center; font-weight:bold; color:var(--danger-color);">${fmt(pCogs, 0)}</td></tr>
                 <tr style="background:#f3e5f5;">
@@ -688,19 +851,19 @@
             `;
         }
 
-        // ==========================================
-        // النسخ الاحتياطي
-        // ==========================================
+        // ============================================================
+        // النسخ الاحتياطي والاستعادة
+        // ============================================================
         function backupData() {
-            db.settings.lastBackup = Date.now(); // تحديث وقت آخر نسخة احتياطية
+            db.settings.lastBackup = Date.now();
             localStorage.setItem('subway_db_v3', JSON.stringify(db));
-            dataModifiedSinceBackup = false; // تصفير عداد التنبيه عند الغلق
+            dataModifiedSinceBackup = false;
             
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
             const dl = document.createElement('a'); dl.setAttribute("href", dataStr);
             dl.setAttribute("download", `Subway_Backup_V4_${new Date().toISOString().split('T')[0]}.json`);
             document.body.appendChild(dl); dl.click(); dl.remove();
-            alert('تم تحميل النسخة الاحتياطية بنجاح على جهازك.');
+            alert('✅ تم تحميل النسخة الاحتياطية بنجاح على جهازك.');
         }
         
         function restoreData(event) {
@@ -711,16 +874,17 @@
                     db = JSON.parse(e.target.result); 
                     if(!db.settings.lastBackup) db.settings.lastBackup = Date.now();
                     saveData();
-                    document.getElementById('set_inv').value = db.settings.initialInv;
+                    document.getElementById('set_inv').value = db.settings.initialInv || 0;
+                    document.getElementById('set_inv_date').value = db.settings.initialInvDate || '';
                     document.getElementById('set_cogs').value = db.settings.cogsRate || 90;
-                    alert('تم استعادة البيانات بنجاح!');
-                } catch(err) { alert('هذا الملف غير صالح'); }
+                    alert('✅ تم استعادة البيانات بنجاح!');
+                } catch(err) { alert('❌ هذا الملف غير صالح'); }
             }; reader.readAsText(file); event.target.value = '';
         }
 
-        // ==========================================
-        // التصدير إلى Excel
-        // ==========================================
+        // ============================================================
+        // التصدير إلى Excel و PDF (نفس الكود السابق مع تعديل طفيف)
+        // ============================================================
         function exportExcel(type) {
             let data = [], fileName = "", sheetName = "";
             if(type === 'sales') {
@@ -759,9 +923,6 @@
             XLSX.utils.book_append_sheet(wb, ws, sheetName); XLSX.writeFile(wb, fileName);
         }
 
-        // ==========================================
-        // التصدير للـ PDF
-        // ==========================================
         async function exportPDF(type) {
             document.getElementById('loadingSpinner').style.display = 'block';
 
@@ -853,6 +1014,18 @@
             } catch (error) { console.error(error); alert('خطأ في التصدير.'); } 
             finally { document.body.removeChild(container); document.getElementById('loadingSpinner').style.display = 'none'; }
         }
+
+        // ============================================================
+        // تهيئة الصفحة (سيتم استدعاؤها بعد تحميل DOM)
+        // ============================================================
+        window.onload = function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('s_date').value = today;
+            document.getElementById('p_date').value = today;
+            document.getElementById('e_date').value = today;
+
+            // يتم تعبئة الإعدادات بعد تسجيل الدخول في checkPassword
+        };
     </script>
 </body>
 </html>
