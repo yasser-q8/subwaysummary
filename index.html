@@ -21,7 +21,7 @@
             --success-color: #1d6f42;
             --blue-color: #0288d1;
             --audit-color: #795548;
-            --light-blue: #ADD8E6; /* أزرق فاتح */
+            --light-blue: #ADD8E6;
         }
 
         body {
@@ -35,7 +35,6 @@
             min-height: 100vh;
         }
 
-        /* ====== العلامة المائية ====== */
         #watermark-container {
             position: fixed;
             top: 0;
@@ -56,10 +55,9 @@
             -webkit-user-drag: none;
         }
 
-        /* شاشة تسجيل الدخول - لون أزرق فاتح */
         #loginScreen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(173, 216, 230, 0.92); /* أزرق فاتح مع شفافية */
+            background-color: rgba(173, 216, 230, 0.92);
             z-index: 999999;
             display: flex; justify-content: center; align-items: center;
         }
@@ -81,8 +79,68 @@
         }
         .login-box button:hover { background: #006b10; }
 
-        /* إخفاء التطبيق حتى تسجيل الدخول */
         #appContainer { display: none; }
+
+        /* ====== Modal لتحديد الفترة ====== */
+        #dateRangeModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 100000;
+            justify-content: center;
+            align-items: center;
+        }
+        #dateRangeModal .modal-box {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        #dateRangeModal .modal-box h3 {
+            margin-top: 0;
+            color: var(--subway-green);
+            text-align: center;
+        }
+        #dateRangeModal .modal-box .field {
+            margin: 15px 0;
+        }
+        #dateRangeModal .modal-box .field label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        #dateRangeModal .modal-box .field input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: Arial;
+        }
+        #dateRangeModal .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        #dateRangeModal .modal-actions button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #dateRangeModal .modal-actions .btn-cancel {
+            background: #f0f0f0;
+            color: #333;
+        }
+        #dateRangeModal .modal-actions .btn-confirm {
+            background: var(--subway-green);
+            color: #fff;
+        }
 
         .main-header {
             background-color: #ffffff; border-bottom: 4px solid var(--subway-yellow);
@@ -177,7 +235,6 @@
 
         #loadingSpinner { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.85); color: #fff; padding: 20px 30px; border-radius: 8px; z-index: 9999; font-weight: bold; }
 
-        /* سجل الحركات */
         .audit-filter { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
         .audit-filter select, .audit-filter input { padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-family: Arial; }
 
@@ -189,7 +246,6 @@
         .badge-backup { background: #795548; }
         .badge-restore { background: #4caf50; }
 
-        /* عرض البيانات بشكل readable ومنسق */
         .data-block {
             font-size: 13px;
             direction: ltr;
@@ -218,15 +274,35 @@
 </head>
 <body>
 
-    <!-- العلامة المائية (سيتم ملؤها بواسطة JavaScript) -->
+    <!-- العلامة المائية -->
     <div id="watermark-container"></div>
 
+    <!-- شاشة تسجيل الدخول -->
     <div id="loginScreen">
         <div class="login-box">
             <img src="https://i.postimg.cc/3wX7WF0f/Subway-Logo.png" alt="Subway Logo">
             <h2 style="margin-top:0;">تسجيل الدخول</h2>
             <input type="password" id="appPassword" placeholder="أدخل كلمة المرور" onkeypress="if(event.key === 'Enter') checkPassword()">
             <button onclick="checkPassword()">دخول للبرنامج</button>
+        </div>
+    </div>
+
+    <!-- ====== Modal لتحديد الفترة ====== -->
+    <div id="dateRangeModal">
+        <div class="modal-box">
+            <h3>📅 تحديد فترة التقرير الشامل</h3>
+            <div class="field">
+                <label>من تاريخ</label>
+                <input type="date" id="modal_from">
+            </div>
+            <div class="field">
+                <label>إلى تاريخ</label>
+                <input type="date" id="modal_to">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal()">إلغاء</button>
+                <button class="btn-confirm" onclick="confirmModal()">تأكيد</button>
+            </div>
         </div>
     </div>
 
@@ -237,7 +313,7 @@
                 <h1>سوبر ماركت صب واي</h1>
             </div>
             <div class="top-actions">
-                <button class="btn btn-pdf" onclick="exportCombinedPDF()">📄 تقرير شامل PDF</button>
+                <button class="btn btn-pdf" onclick="showDateRangeModal()">📄 تقرير شامل PDF</button>
                 <button class="btn btn-backup" onclick="backupData()">📥 نسخ احتياطي</button>
                 <input type="file" id="restoreFile" style="display:none;" accept=".json" onchange="restoreData(event)">
                 <button class="btn btn-restore" onclick="document.getElementById('restoreFile').click()">📤 استعادة</button>
@@ -282,8 +358,8 @@
 
                 <div class="action-bar">
                     <div class="date-filter">
-                        فترة من: <input type="date" id="f_s_from" onchange="renderAllTables()">
-                        إلى: <input type="date" id="f_s_to" onchange="renderAllTables()">
+                        فترة من: <input type="date" id="f_s_from" onchange="syncAllDateFilters()">
+                        إلى: <input type="date" id="f_s_to" onchange="syncAllDateFilters()">
                     </div>
                     <div>
                         <button class="btn btn-excel" onclick="exportExcel('sales')">تصدير Excel</button>
@@ -329,8 +405,8 @@
 
                 <div class="action-bar">
                     <div class="date-filter">
-                        فترة من: <input type="date" id="f_p_from" onchange="renderAllTables()">
-                        إلى: <input type="date" id="f_p_to" onchange="renderAllTables()">
+                        فترة من: <input type="date" id="f_p_from" onchange="syncAllDateFilters()">
+                        إلى: <input type="date" id="f_p_to" onchange="syncAllDateFilters()">
                     </div>
                     <div>
                         <button class="btn btn-excel" onclick="exportExcel('purchases')">تصدير Excel</button>
@@ -386,8 +462,8 @@
 
                 <div class="action-bar">
                     <div class="date-filter">
-                        فترة من: <input type="date" id="f_e_from" onchange="renderAllTables()">
-                        إلى: <input type="date" id="f_e_to" onchange="renderAllTables()">
+                        فترة من: <input type="date" id="f_e_from" onchange="syncAllDateFilters()">
+                        إلى: <input type="date" id="f_e_to" onchange="syncAllDateFilters()">
                     </div>
                     <div>
                         <button class="btn btn-excel" onclick="exportExcel('expenses')">تصدير Excel</button>
@@ -434,8 +510,8 @@
                 <div class="action-bar" style="background:#e8f5e9; border-color:#c8e6c9;">
                     <div class="date-filter">
                         <strong>تحديد فترة التقرير:</strong> 
-                        من <input type="date" id="f_pl_from" onchange="renderAllTables()">
-                        إلى <input type="date" id="f_pl_to" onchange="renderAllTables()">
+                        من <input type="date" id="f_pl_from" onchange="syncAllDateFilters()">
+                        إلى <input type="date" id="f_pl_to" onchange="syncAllDateFilters()">
                     </div>
                     <div>
                         <button class="btn btn-excel" onclick="exportExcel('pl')">تصدير Excel</button>
@@ -530,7 +606,7 @@
 
     <script>
         // ============================================================
-        // 1. إنشاء العلامة المائية (50 شعارًا عشوائيًا بمسافة >= 3 سم)
+        // 1. العلامة المائية
         // ============================================================
         function createWatermarks() {
             const container = document.getElementById('watermark-container');
@@ -642,6 +718,39 @@
         }
 
         // ============================================================
+        // مزامنة جميع فلاتر التاريخ (المطلب 4)
+        // ============================================================
+        let isSyncing = false;
+
+        function syncAllDateFilters() {
+            if (isSyncing) return;
+            isSyncing = true;
+
+            // نأخذ القيم من أول حقل "من" و "إلى" (المبيعات كمثال)
+            const fromVal = document.getElementById('f_s_from').value;
+            const toVal = document.getElementById('f_s_to').value;
+
+            const fromIds = ['f_s_from', 'f_p_from', 'f_e_from', 'f_pl_from'];
+            const toIds = ['f_s_to', 'f_p_to', 'f_e_to', 'f_pl_to'];
+
+            fromIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value !== fromVal) {
+                    el.value = fromVal;
+                }
+            });
+            toIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value !== toVal) {
+                    el.value = toVal;
+                }
+            });
+
+            isSyncing = false;
+            renderAllTables();
+        }
+
+        // ============================================================
         // دوال مساعدة
         // ============================================================
         function fmt(num, decimals = 2) {
@@ -673,15 +782,11 @@
             return new Date().toISOString();
         }
 
-        // ============================================================
-        // دالة لعرض البيانات بشكل readable وجميل
-        // ============================================================
         function formatDataReadable(jsonStr) {
             if (!jsonStr) return '';
             try {
                 const obj = JSON.parse(jsonStr);
                 if (typeof obj !== 'object') return jsonStr.substring(0, 60);
-                // بناء نص وصفي بشكل منظم
                 let parts = [];
                 if (obj.date) parts.push(`التاريخ: ${formatDisplayDate(obj.date)}`);
                 if (obj.sh1 !== undefined) parts.push(`شفت1: ${fmt(obj.sh1)}`);
@@ -694,7 +799,6 @@
                 if (obj.initialInv !== undefined) parts.push(`مخزون أول المدة: ${fmt(obj.initialInv)}`);
                 if (obj.cogsRate !== undefined) parts.push(`نسبة التكلفة: ${obj.cogsRate}%`);
                 if (obj.initialInvDate) parts.push(`تاريخ بداية المخزون: ${formatDisplayDate(obj.initialInvDate)}`);
-                // إذا لم نجد أي من هذه الخصائص، نعرض ملخص عام
                 if (parts.length === 0) {
                     const keys = Object.keys(obj);
                     if (keys.length <= 5) {
@@ -885,7 +989,7 @@
         }
 
         // ============================================================
-        // دوال التصدير
+        // دوال التصدير Excel (نفسها)
         // ============================================================
         function exportExcel(type) {
             let data = [], fileName = "", sheetName = "";
@@ -926,19 +1030,74 @@
             addAuditEntry('export', type, `تصدير Excel: ${fileName}`, null, null);
         }
 
-        // التصدير المجمع PDF
+        // ============================================================
+        // دوال الـ Modal لتحديد الفترة (المطلب 3)
+        // ============================================================
+        function showDateRangeModal() {
+            // تحديد أقدم تاريخ من جميع السجلات
+            let allDates = [];
+            db.sales.forEach(r => { if (r.date) allDates.push(r.date); });
+            db.purchases.forEach(r => { if (r.date) allDates.push(r.date); });
+            db.expenses.forEach(r => { if (r.date) allDates.push(r.date); });
+            let oldest = allDates.length ? allDates.reduce((a,b) => a < b ? a : b) : new Date().toISOString().split('T')[0];
+            let today = new Date().toISOString().split('T')[0];
+
+            document.getElementById('modal_from').value = oldest;
+            document.getElementById('modal_to').value = today;
+            document.getElementById('dateRangeModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('dateRangeModal').style.display = 'none';
+        }
+
+        function confirmModal() {
+            const from = document.getElementById('modal_from').value;
+            const to = document.getElementById('modal_to').value;
+            if (!from || !to) {
+                alert('يرجى تحديد التاريخ من وإلى');
+                return;
+            }
+            if (from > to) {
+                alert('تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
+                return;
+            }
+            closeModal();
+
+            // تحديث جميع الفلاتر بالقيم المختارة
+            const fromIds = ['f_s_from', 'f_p_from', 'f_e_from', 'f_pl_from'];
+            const toIds = ['f_s_to', 'f_p_to', 'f_e_to', 'f_pl_to'];
+            fromIds.forEach(id => { document.getElementById(id).value = from; });
+            toIds.forEach(id => { document.getElementById(id).value = to; });
+
+            // إعادة عرض الجداول
+            renderAllTables();
+            // ثم استدعاء التقرير الشامل
+            exportCombinedPDF();
+        }
+
+        // ============================================================
+        // التصدير المجمع PDF (المعدل حسب المطالب)
+        // ============================================================
         async function exportCombinedPDF() {
             document.getElementById('loadingSpinner').style.display = 'block';
-            try {
-                const f_s_from = document.getElementById('f_s_from').value;
-                const f_s_to = document.getElementById('f_s_to').value;
-                const f_p_from = document.getElementById('f_p_from').value;
-                const f_p_to = document.getElementById('f_p_to').value;
-                const f_e_from = document.getElementById('f_e_from').value;
-                const f_e_to = document.getElementById('f_e_to').value;
-                const f_pl_from = document.getElementById('f_pl_from').value;
-                const f_pl_to = document.getElementById('f_pl_to').value;
 
+            // قراءة الفترة من الفلاتر (بعد المزامنة)
+            const f_s_from = document.getElementById('f_s_from').value;
+            const f_s_to = document.getElementById('f_s_to').value;
+            const f_p_from = document.getElementById('f_p_from').value;
+            const f_p_to = document.getElementById('f_p_to').value;
+            const f_e_from = document.getElementById('f_e_from').value;
+            const f_e_to = document.getElementById('f_e_to').value;
+            const f_pl_from = document.getElementById('f_pl_from').value;
+            const f_pl_to = document.getElementById('f_pl_to').value;
+
+            // نأخذ من وإلى الموحدة (من المبيعات)
+            const fromDate = f_s_from;
+            const toDate = f_s_to;
+            const periodLabel = fromDate && toDate ? `من ${formatDisplayDate(fromDate)} إلى ${formatDisplayDate(toDate)}` : 'كل الفترات';
+
+            try {
                 const container = document.createElement('div');
                 container.style.position = 'fixed';
                 container.style.top = '0';
@@ -963,6 +1122,7 @@
                             <img src="https://i.postimg.cc/3wX7WF0f/Subway-Logo.png" style="max-width: 70px;">
                             <h2 style="color:#008c15; margin:5px 0;">سوبر ماركت صب واي</h2>
                             <h3 style="color:#444; margin:0;">${title}</h3>
+                            <div style="font-size:14px; color:#333; margin:5px 0; font-weight:bold;">الفترة: ${periodLabel}</div>
                             <hr style="border-top:3px solid #ffc400;">
                         </div>
                     `;
@@ -972,53 +1132,94 @@
 
                 // 1. المبيعات
                 let salesRows = db.sales.filter(r => inRange(r.date, f_s_from, f_s_to));
+                let totalSales = 0;
                 let salesHtml = `<table style="width:100%; border-collapse:collapse; text-align:right;">
                     <thead><tr style="background:#008c15; color:#fff;"><th style="padding:8px;border:1px solid #ccc;">م</th><th style="padding:8px;border:1px solid #ccc;">التاريخ</th><th style="padding:8px;border:1px solid #ccc;">شفت 1</th><th style="padding:8px;border:1px solid #ccc;">شفت 2</th><th style="padding:8px;border:1px solid #ccc;">شفت 3</th><th style="padding:8px;border:1px solid #ccc;">الإجمالي</th></tr></thead><tbody>`;
                 salesRows.forEach((r,i) => {
+                    totalSales += r.total;
                     salesHtml += `<tr><td style="padding:6px;border:1px solid #ddd;">${i+1}</td><td style="padding:6px;border:1px solid #ddd;">${formatDisplayDate(r.date)}</td><td style="padding:6px;border:1px solid #ddd;">${fmt(r.sh1)}</td><td style="padding:6px;border:1px solid #ddd;">${fmt(r.sh2)}</td><td style="padding:6px;border:1px solid #ddd;">${fmt(r.sh3)}</td><td style="padding:6px;border:1px solid #ddd;font-weight:bold;">${fmt(r.total)}</td></tr>`;
                 });
+                // إضافة صف الإجمالي
+                salesHtml += `<tr style="background:#f0f0f0; font-weight:bold;"><td colspan="5" style="padding:6px;border:1px solid #ddd; text-align:left;">الإجمالي</td><td style="padding:6px;border:1px solid #ddd;">${fmt(totalSales)}</td></tr>`;
                 salesHtml += `</tbody></table>`;
                 addPage('تقرير المبيعات اليومية', salesHtml);
 
                 // 2. المشتريات
                 let purchRows = db.purchases.filter(r => inRange(r.date, f_p_from, f_p_to));
+                let totalPurch = 0;
                 let purchHtml = `<table style="width:100%; border-collapse:collapse; text-align:right;">
                     <thead><tr style="background:#008c15; color:#fff;"><th style="padding:8px;border:1px solid #ccc;">م</th><th style="padding:8px;border:1px solid #ccc;">التاريخ</th><th style="padding:8px;border:1px solid #ccc;">البيان</th><th style="padding:8px;border:1px solid #ccc;">المبلغ</th></tr></thead><tbody>`;
                 purchRows.forEach((r,i) => {
+                    totalPurch += r.amount;
                     purchHtml += `<tr><td style="padding:6px;border:1px solid #ddd;">${i+1}</td><td style="padding:6px;border:1px solid #ddd;">${formatDisplayDate(r.date)}</td><td style="padding:6px;border:1px solid #ddd;">${r.desc}</td><td style="padding:6px;border:1px solid #ddd;font-weight:bold;">${fmt(r.amount)}</td></tr>`;
                 });
+                purchHtml += `<tr style="background:#f0f0f0; font-weight:bold;"><td colspan="3" style="padding:6px;border:1px solid #ddd; text-align:left;">الإجمالي</td><td style="padding:6px;border:1px solid #ddd;">${fmt(totalPurch)}</td></tr>`;
                 purchHtml += `</tbody></table>`;
                 addPage('تقرير المشتريات', purchHtml);
 
                 // 3. المصروفات
                 let expRows = db.expenses.filter(r => inRange(r.date, f_e_from, f_e_to));
+                let totalExp = 0;
                 let expHtml = `<table style="width:100%; border-collapse:collapse; text-align:right;">
                     <thead><tr style="background:#008c15; color:#fff;"><th style="padding:8px;border:1px solid #ccc;">م</th><th style="padding:8px;border:1px solid #ccc;">التاريخ</th><th style="padding:8px;border:1px solid #ccc;">البند</th><th style="padding:8px;border:1px solid #ccc;">التفاصيل</th><th style="padding:8px;border:1px solid #ccc;">المبلغ</th></tr></thead><tbody>`;
                 expRows.forEach((r,i) => {
+                    totalExp += r.amount;
                     expHtml += `<tr><td style="padding:6px;border:1px solid #ddd;">${i+1}</td><td style="padding:6px;border:1px solid #ddd;">${formatDisplayDate(r.date)}</td><td style="padding:6px;border:1px solid #ddd;">${r.category}</td><td style="padding:6px;border:1px solid #ddd;">${r.desc}</td><td style="padding:6px;border:1px solid #ddd;font-weight:bold;">${fmt(r.amount)}</td></tr>`;
                 });
+                expHtml += `<tr style="background:#f0f0f0; font-weight:bold;"><td colspan="4" style="padding:6px;border:1px solid #ddd; text-align:left;">الإجمالي</td><td style="padding:6px;border:1px solid #ddd;">${fmt(totalExp)}</td></tr>`;
                 expHtml += `</tbody></table>`;
                 addPage('تقرير المصروفات', expHtml);
 
-                // 4. الأرباح والخسائر
+                // 4. الأرباح والخسائر (مع عامود المعادلة وزيادة المسافة)
                 calculateDashboard();
                 let pl = periodTotals;
+                const cogsRate = db.settings.cogsRate || 90;
+                const netColor = pl.pNet < 0 ? 'var(--danger-color)' : 'var(--subway-green)';
+
                 let plHtml = `
                     <table style="width:100%; border-collapse:collapse; text-align:right; font-size:14px;">
-                        <tr><td style="padding:8px;border:1px solid #ccc;"><b>إجمالي المبيعات</b></td><td style="padding:8px;border:1px solid #ccc;text-align:center;">${fmt(pl.pSales,0)}</td></tr>
-                        <tr><td style="padding:8px;border:1px solid #ccc;"><b>تكلفة البضاعة المباعة</b></td><td style="padding:8px;border:1px solid #ccc;text-align:center;">${fmt(pl.pCogs,0)}</td></tr>
-                        <tr style="background:#f0f0f0;"><td style="padding:8px;border:1px solid #ccc;"><b>مجمل الربح التجاري</b></td><td style="padding:8px;border:1px solid #ccc;text-align:center;font-weight:bold;">${fmt(pl.pGross,0)}</td></tr>
-                        <tr><td style="padding:8px;border:1px solid #ccc;"><b>إجمالي المصروفات</b></td><td style="padding:8px;border:1px solid #ccc;text-align:center;">${fmt(pl.pExpenses,0)}</td></tr>
-                        <tr style="background:#e8f5e9;"><td style="padding:8px;border:1px solid #ccc;"><b style="color:${pl.pNet<0?'var(--danger-color)':'var(--subway-green)'};">صافي الربح/الخسارة</b></td><td style="padding:8px;border:1px solid #ccc;text-align:center;font-size:20px;font-weight:bold;color:${pl.pNet<0?'var(--danger-color)':'var(--subway-green)'};">${fmt(pl.pNet,0)}</td></tr>
-                        <tr><td colspan="2" style="padding:5px;border:none;"></td></tr>
-                        <tr><td style="padding:8px;border:1px solid #ccc;"><b>رصيد المخزون الافتتاحي</b></td><td style="padding:8px;border:1px solid #ccc;text-align:center;">${fmt(pl.periodOpeningInventory,0)}</td></tr>
-                        <tr><td style="padding:8px;border:1px solid #ccc;"><b>المشتريات خلال الفترة</b></td><td style="padding:8px;border:1px solid #ccc;text-align:center;">${fmt(pl.pPurchases,0)}</td></tr>
-                        <tr><td style="padding:8px;border:1px solid #ccc;"><b>تكلفة البضاعة المباعة</b></td><td style="padding:8px;border:1px solid #ccc;text-align:center;">${fmt(pl.pCogs,0)}</td></tr>
-                        <tr style="background:#f3e5f5;"><td style="padding:8px;border:1px solid #ccc;"><b style="color:#8e24aa;">المخزون الختامي</b></td><td style="padding:8px;border:1px solid #ccc;text-align:center;font-weight:bold;color:#8e24aa;">${fmt(pl.periodClosingInventory,0)}</td></tr>
+                        <tr><td style="padding:8px;border:1px solid #ccc;"><b>إجمالي المبيعات</b></td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;">المبيعات المحققة خلال الفترة</td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;">${fmt(pl.pSales,0)}</td></tr>
+                        <tr><td style="padding:8px;border:1px solid #ccc;"><b>تكلفة البضاعة المباعة (${cogsRate}%)</b></td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;">المبيعات × نسبة التكلفة</td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;">${fmt(pl.pCogs,0)}</td></tr>
+                        <tr style="background:#f0f0f0;"><td style="padding:8px;border:1px solid #ccc;"><b>مجمل الربح التجاري</b></td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;">المبيعات - تكلفة البضاعة المباعة</td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;font-weight:bold;">${fmt(pl.pGross,0)}</td></tr>
+                        <tr><td style="padding:8px;border:1px solid #ccc;"><b>إجمالي المصروفات</b></td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;">مجموع المصروفات التشغيلية</td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;">${fmt(pl.pExpenses,0)}</td></tr>
+                        <tr style="background:#e8f5e9;"><td style="padding:8px;border:1px solid #ccc;"><b style="color:${netColor};">صافي الربح/الخسارة</b></td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;">مجمل الربح - المصروفات</td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;font-size:20px;font-weight:bold;color:${netColor};">${fmt(pl.pNet,0)}</td></tr>
                     </table>
                 `;
+
+                // إضافة فاصل 5 سم
+                plHtml += `<div style="height: 2cm; border-bottom: 2px dashed #ccc; margin: 15px 0;"></div>`;
+
+                // جدول المخزون
+                plHtml += `
+                    <table style="width:100%; border-collapse:collapse; text-align:right; font-size:14px; margin-top:10px;">
+                        <tr><td style="padding:8px;border:1px solid #ccc;"><b>رصيد المخزون الافتتاحي</b></td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;">الرصيد المحول من الفترات السابقة</td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;">${fmt(pl.periodOpeningInventory,0)}</td></tr>
+                        <tr><td style="padding:8px;border:1px solid #ccc;"><b>المشتريات خلال الفترة</b></td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;">إجمالي المشتريات المضافة</td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;">${fmt(pl.pPurchases,0)}</td></tr>
+                        <tr><td style="padding:8px;border:1px solid #ccc;"><b>تكلفة البضاعة المباعة</b></td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;">المخصوم من المخزون</td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;">${fmt(pl.pCogs,0)}</td></tr>
+                        <tr style="background:#f3e5f5;"><td style="padding:8px;border:1px solid #ccc;"><b style="color:#8e24aa;">المخزون الختامي</b></td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;">الافتتاحي + المشتريات - تكلفة المبيعات</td>
+                            <td style="padding:8px;border:1px solid #ccc;text-align:center;font-weight:bold;color:#8e24aa;">${fmt(pl.periodClosingInventory,0)}</td></tr>
+                    </table>
+                `;
+
                 addPage('تقرير الأرباح والمخزون', plHtml);
 
+                // إنشاء PDF
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF('p', 'pt', 'a4');
                 const imgWidth = pdf.internal.pageSize.getWidth();
@@ -1161,7 +1362,7 @@
         }
 
         // ============================================================
-        // سجل الحركات (Audit Log) مع عرض بيانات منسق
+        // سجل الحركات (Audit Log)
         // ============================================================
         function renderAuditLog() {
             const tbody = document.getElementById('auditTbody');
@@ -1212,7 +1413,6 @@
                 const tableLabel = tableMap[entry.table] || entry.table;
                 let details = entry.details || '';
 
-                // بناء عرض البيانات بشكل منفصل (قبل وبعد)
                 let dataHtml = '';
                 if (entry.dataBefore) {
                     dataHtml += `<div class="data-block data-before"><span class="data-label">🟦 قبل:</span> ${formatDataReadable(entry.dataBefore)}</div>`;
@@ -1235,7 +1435,6 @@
             });
         }
 
-        // تصدير سجل الحركات إلى Excel
         function exportAuditExcel() {
             let logs = db.auditLog || [];
             const typeFilter = document.getElementById('audit_type_filter').value;
@@ -1310,7 +1509,7 @@
         }
 
         // ============================================================
-        // تنبيهات النسخ الاحتياطي (12 ساعة) ورسالة الإغلاق
+        // تنبيهات النسخ الاحتياطي
         // ============================================================
         function checkBackupReminder() {
             const now = Date.now();
@@ -1341,9 +1540,8 @@
         };
 
         // ============================================================
-        // دوال التصدير الفردية (PDF, Excel) مع تسجيل الحركات
+        // دوال التصدير الفردية (PDF) - معدلة لإظهار الفترة
         // ============================================================
-        // إعادة تعريف exportPDF (مع التسجيل)
         const originalExportPDF = exportPDF;
         exportPDF = async function(type) {
             document.getElementById('loadingSpinner').style.display = 'block';
@@ -1392,11 +1590,10 @@
                 tableHtml = `<table style="width:100%; border-collapse:collapse; font-family:Arial; text-align:right;">
                     <thead><tr style="background:#008c15; color:white;"><th style="padding:10px; border:1px solid #ccc;">م</th><th style="padding:10px; border:1px solid #ccc;">التاريخ</th><th style="padding:10px; border:1px solid #ccc;">البند</th><th style="padding:10px; border:1px solid #ccc;">التفاصيل</th><th style="padding:10px; border:1px solid #ccc;">المبلغ</th></tr></thead><tbody></tbody></table>`;
             } else {
-                tableHtml = document.getElementById('plSummaryTable').outerHTML; 
-                tableHtml = tableHtml.replace(/<table/g, '<table style="width:100%; border-collapse:collapse; font-family:Arial; text-align:right; font-size:15px;" border="1"');
-                tableHtml = tableHtml.replace(/<th/g, '<th style="background:#008c15; color:white; padding:10px; border:1px solid #ccc;"');
-                tableHtml = tableHtml.replace(/<td/g, '<td style="padding:10px; border:1px solid #ccc;"');
-                tableHtml = tableHtml.replace(/border-bottom: 3px dashed #888;/g, 'border-bottom: 3px dashed #888; border-left:none; border-right:none;');
+                // PL مع عامود المعادلة
+                tableHtml = `<table style="width:100%; border-collapse:collapse; font-family:Arial; text-align:right; font-size:14px;">
+                    <thead><tr style="background:#008c15; color:white;"><th style="padding:10px; border:1px solid #ccc;">البند</th><th style="padding:10px; border:1px solid #ccc;">المعادلة والتوضيح</th><th style="padding:10px; border:1px solid #ccc;">القيمة</th></tr></thead>
+                    <tbody id="pl_pdf_tbody"></tbody></table>`;
             }
 
             const tableWrap = document.createElement('div'); tableWrap.innerHTML = tableHtml; currentPage.appendChild(tableWrap);
@@ -1404,13 +1601,22 @@
             if(type !== 'pl') {
                 let tbody = tableWrap.querySelector('tbody');
                 let rows = db[type].filter(r => inRange(r.date, fFrom, fTo)); 
-                
+                let totalCol = 0;
                 rows.forEach((r, i) => {
                     const tr = document.createElement('tr');
                     let rHtml = `<td style="padding:8px; border:1px solid #ddd;">${i+1}</td><td style="padding:8px; border:1px solid #ddd;">${formatDisplayDate(r.date)}</td>`;
-                    if(type === 'sales') { rHtml += `<td style="padding:8px; border:1px solid #ddd;">${fmt(r.sh1)}</td><td style="padding:8px; border:1px solid #ddd;">${fmt(r.sh2)}</td><td style="padding:8px; border:1px solid #ddd;">${fmt(r.sh3)}</td><td style="padding:8px; border:1px solid #ddd; font-weight:bold;">${fmt(r.total)}</td>`; } 
-                    else if(type === 'purchases') { rHtml += `<td style="padding:8px; border:1px solid #ddd;">${r.desc}</td><td style="padding:8px; border:1px solid #ddd; font-weight:bold;">${fmt(r.amount)}</td>`; }
-                    else if(type === 'expenses') { rHtml += `<td style="padding:8px; border:1px solid #ddd;">[${r.category}]</td><td style="padding:8px; border:1px solid #ddd;">${r.desc}</td><td style="padding:8px; border:1px solid #ddd; font-weight:bold;">${fmt(r.amount)}</td>`; }
+                    if(type === 'sales') { 
+                        rHtml += `<td style="padding:8px; border:1px solid #ddd;">${fmt(r.sh1)}</td><td style="padding:8px; border:1px solid #ddd;">${fmt(r.sh2)}</td><td style="padding:8px; border:1px solid #ddd;">${fmt(r.sh3)}</td><td style="padding:8px; border:1px solid #ddd; font-weight:bold;">${fmt(r.total)}</td>`;
+                        totalCol += r.total;
+                    } 
+                    else if(type === 'purchases') { 
+                        rHtml += `<td style="padding:8px; border:1px solid #ddd;">${r.desc}</td><td style="padding:8px; border:1px solid #ddd; font-weight:bold;">${fmt(r.amount)}</td>`;
+                        totalCol += r.amount;
+                    }
+                    else if(type === 'expenses') { 
+                        rHtml += `<td style="padding:8px; border:1px solid #ddd;">[${r.category}]</td><td style="padding:8px; border:1px solid #ddd;">${r.desc}</td><td style="padding:8px; border:1px solid #ddd; font-weight:bold;">${fmt(r.amount)}</td>`;
+                        totalCol += r.amount;
+                    }
                     tr.innerHTML = rHtml; tbody.appendChild(tr);
 
                     if (currentPage.offsetHeight > safeHeight) {
@@ -1419,6 +1625,36 @@
                         currentPage.appendChild(newWrap); tbody = newWrap.querySelector('tbody'); tbody.appendChild(tr); 
                     }
                 });
+                // إضافة صف الإجمالي
+                if (rows.length > 0) {
+                    const totalRow = document.createElement('tr');
+                    totalRow.style.background = '#f0f0f0';
+                    totalRow.style.fontWeight = 'bold';
+                    let colSpan = type === 'sales' ? 5 : (type === 'purchases' ? 3 : 4);
+                    totalRow.innerHTML = `<td colspan="${colSpan}" style="padding:6px;border:1px solid #ddd; text-align:left;">الإجمالي</td><td style="padding:6px;border:1px solid #ddd;">${fmt(totalCol)}</td>`;
+                    tbody.appendChild(totalRow);
+                }
+            } else {
+                // PL - نستخدم البيانات من periodTotals
+                calculateDashboard();
+                let pl = periodTotals;
+                const cogsRate = db.settings.cogsRate || 90;
+                const netColor = pl.pNet < 0 ? 'var(--danger-color)' : 'var(--subway-green)';
+                const tbody = document.getElementById('pl_pdf_tbody');
+                if (tbody) {
+                    tbody.innerHTML = `
+                        <tr><td style="padding:8px;border:1px solid #ddd;">إجمالي المبيعات</td><td style="padding:8px;border:1px solid #ddd;">المبيعات المحققة خلال الفترة</td><td style="padding:8px;border:1px solid #ddd;text-align:center;">${fmt(pl.pSales,0)}</td></tr>
+                        <tr><td style="padding:8px;border:1px solid #ddd;">تكلفة البضاعة المباعة (${cogsRate}%)</td><td style="padding:8px;border:1px solid #ddd;">المبيعات × نسبة التكلفة</td><td style="padding:8px;border:1px solid #ddd;text-align:center;">${fmt(pl.pCogs,0)}</td></tr>
+                        <tr style="background:#f0f0f0;"><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">مجمل الربح التجاري</td><td style="padding:8px;border:1px solid #ddd;">المبيعات - تكلفة البضاعة المباعة</td><td style="padding:8px;border:1px solid #ddd;text-align:center;font-weight:bold;">${fmt(pl.pGross,0)}</td></tr>
+                        <tr><td style="padding:8px;border:1px solid #ddd;">إجمالي المصروفات</td><td style="padding:8px;border:1px solid #ddd;">مجموع المصروفات التشغيلية</td><td style="padding:8px;border:1px solid #ddd;text-align:center;">${fmt(pl.pExpenses,0)}</td></tr>
+                        <tr style="background:#e8f5e9;"><td style="padding:8px;border:1px solid #ddd;font-weight:bold;color:${netColor};">صافي الربح/الخسارة</td><td style="padding:8px;border:1px solid #ddd;">مجمل الربح - المصروفات</td><td style="padding:8px;border:1px solid #ddd;text-align:center;font-size:20px;font-weight:bold;color:${netColor};">${fmt(pl.pNet,0)}</td></tr>
+                        <tr><td colspan="3" style="height:5cm; border-bottom:2px dashed #ccc;"></td></tr>
+                        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">رصيد المخزون الافتتاحي</td><td style="padding:8px;border:1px solid #ddd;">الرصيد المحول من الفترات السابقة</td><td style="padding:8px;border:1px solid #ddd;text-align:center;">${fmt(pl.periodOpeningInventory,0)}</td></tr>
+                        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">المشتريات خلال الفترة</td><td style="padding:8px;border:1px solid #ddd;">إجمالي المشتريات المضافة</td><td style="padding:8px;border:1px solid #ddd;text-align:center;">${fmt(pl.pPurchases,0)}</td></tr>
+                        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">تكلفة البضاعة المباعة</td><td style="padding:8px;border:1px solid #ddd;">المخصوم من المخزون</td><td style="padding:8px;border:1px solid #ddd;text-align:center;">${fmt(pl.pCogs,0)}</td></tr>
+                        <tr style="background:#f3e5f5;"><td style="padding:8px;border:1px solid #ddd;font-weight:bold;color:#8e24aa;">المخزون الختامي</td><td style="padding:8px;border:1px solid #ddd;">الافتتاحي + المشتريات - تكلفة المبيعات</td><td style="padding:8px;border:1px solid #ddd;text-align:center;font-weight:bold;color:#8e24aa;">${fmt(pl.periodClosingInventory,0)}</td></tr>
+                    `;
+                }
             }
 
             try {
@@ -1437,7 +1673,7 @@
             finally { document.body.removeChild(container); document.getElementById('loadingSpinner').style.display = 'none'; }
         };
 
-        console.log('✅ تم تحميل النظام مع سجل الحركات المحسن (عرض منسق) ولون الدخول الأزرق الفاتح.');
+        console.log('✅ تم تحميل النظام مع جميع التحسينات المطلوبة.');
     </script>
 </body>
 </html>
